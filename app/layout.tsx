@@ -35,7 +35,7 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <SidebarProvider>
-            <AppLayout>{children}</AppLayout>
+          <AppLayout>{children}</AppLayout>  
           </SidebarProvider>
         </ThemeProvider>
       </body>
