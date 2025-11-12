@@ -6,7 +6,7 @@ const GoalSetupPage = () => {
   const supabase = createClient();
 
   const [goals, setGoals] = useState([
-    { title: "", description: "", category: "", target_date: "" },
+    { title: "", missions: "", category: "", target_date: "" },
   ]);
   const [loading, setLoading] = useState(false);
   const [successMsg, setSuccessMsg] = useState("");
@@ -19,7 +19,7 @@ const GoalSetupPage = () => {
 
   const addGoalField = () => {
     if (goals.length < 3) {
-      setGoals([...goals, { title: "", description: "", category: "", target_date: "" }]);
+      setGoals([...goals, { title: "", missions: "", category: "", target_date: "" }]);
     }
   };
 
@@ -52,7 +52,6 @@ const GoalSetupPage = () => {
         goals.map((g) => ({
           user_id: userId,
           title: g.title,
-          description: g.description,
           category: g.category,
           target_date: g.target_date || null,
         }))
@@ -60,7 +59,7 @@ const GoalSetupPage = () => {
 
       if (error) throw error;
       setSuccessMsg("Goals created successfully!");
-      setGoals([{ title: "", description: "", category: "", target_date: "" }]);
+      setGoals([{ title: "", missions: "", category: "", target_date: "" }]);
     } catch (err: any) {
       console.error(err);
       alert("Error saving goals: " + err.message);
@@ -70,7 +69,7 @@ const GoalSetupPage = () => {
   };
 
   return (
-    <div className="max-w-2xl mx-auto mt-12 p-6 bg-zinc-900 text-white rounded-2xl shadow-lg">
+    <div className="max-w-2xl mx-auto mt-12 p-6 bg-zinc-950 border border-zinc-600 text-white rounded-2xl shadow-lg">
       <h1 className="text-2xl font-bold mb-2 text-center">
         Your First-Time Goal Setup
       </h1>
@@ -80,22 +79,22 @@ const GoalSetupPage = () => {
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {goals.map((goal, index) => (
-          <div key={index} className="p-4 rounded-xl bg-zinc-800 relative">
+          <div key={index} className="p-4 rounded-xl bg-zinc-800 border-zinc-700 border relative">
             <h2 className="text-lg font-semibold mb-3">Goal {index + 1}</h2>
 
             <input
               type="text"
               placeholder="Title (e.g. Get shredded)"
-              className="w-full p-2 mb-2 rounded bg-zinc-700"
+              className="w-full p-2 mb-2 rounded bg-zinc-950 border-zinc-700 border"
               value={goal.title}
               onChange={(e) => handleGoalChange(index, "title", e.target.value)}
               required
             />
 
-            <textarea
-              placeholder="Description (optional)"
-              className="w-full p-2 mb-2 rounded bg-zinc-700"
-              value={goal.description}
+            <input
+              placeholder="Mission"
+              className="w-full p-2 mb-2 rounded bg-zinc-950 border-zinc-700 border"
+              value={goal.missions}
               onChange={(e) =>
                 handleGoalChange(index, "description", e.target.value)
               }
@@ -104,7 +103,7 @@ const GoalSetupPage = () => {
             <input
               type="text"
               placeholder="Category (e.g. Fitness, Study, Career)"
-              className="w-full p-2 mb-2 rounded bg-zinc-700"
+              className="w-full p-2 mb-2 rounded bg-zinc-950 border-zinc-700 border"
               value={goal.category}
               onChange={(e) => handleGoalChange(index, "category", e.target.value)}
             />
