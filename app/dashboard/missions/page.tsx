@@ -47,23 +47,7 @@ const Missions = () => {
   const quote =
     motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)];
 
-  const addMission = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newMission.title || !newMission.goal) {
-      alert("Add both a goal and mission title.");
-      return;
-    }
-    const mission: Mission = {
-      id: crypto.randomUUID(),
-      title: newMission.title,
-      description: newMission.description,
-      goal: newMission.goal,
-      completed: false,
-      date: new Date().toISOString().split("T")[0],
-    };
-    setMissions([mission, ...missions]);
-    setNewMission({ title: "", description: "", goal: "" });
-  };
+ 
 
   const toggleCompletion = (id: string) => {
     setMissions((prev) =>
@@ -94,7 +78,7 @@ const Missions = () => {
       </div>
 
       {/* Add Mission Form */}
-      <form onSubmit={addMission} className="mb-8 space-y-3">
+      
         <input
           type="text"
           value={newMission.goal}
@@ -127,9 +111,8 @@ const Missions = () => {
         >
           Add Mission
         </button>
-      </form>
-
-      {/* Missions List */}
+    
+      
       {missions.length === 0 ? (
         <p className="text-gray-500 text-center">No missions yet. Add one!</p>
       ) : (
