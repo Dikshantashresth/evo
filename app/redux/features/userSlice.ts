@@ -23,7 +23,8 @@ export const  getprofile = createAsyncThunk<UserProfile>('profile/getInfo',async
         username:data.username,
         xp:data.xp,
         level:data.level,
-        title:data.title
+        title:data.title,
+        goals_achieved:data.goals_achieved
     }
     return info
     

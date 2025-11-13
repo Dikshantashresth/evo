@@ -1,26 +1,27 @@
 "use client";
 import React, { useState } from "react";
-import { createClient } from "@/lib/supabase/client"; 
+import { createClient } from "@/lib/supabase/client";
+import { useRouter } from "next/navigation";
 
 const GoalSetupPage = () => {
   const supabase = createClient();
+  const router = useRouter();
 
   const [goals, setGoals] = useState([
-    { title: "", missions: "", category: "", target_date: "" },
+    { title: "", category: "", target_date: "", mission: "" },
   ]);
   const [loading, setLoading] = useState(false);
   const [successMsg, setSuccessMsg] = useState("");
 
   const handleGoalChange = (index: number, field: string, value: string) => {
     const updated = [...goals];
-    updated[index][field as keyof typeof updated[0]] = value;
+    updated[index][field as keyof (typeof updated)[0]] = value;
     setGoals(updated);
   };
 
   const addGoalField = () => {
-    if (goals.length < 3) {
-      setGoals([...goals, { title: "", missions: "", category: "", target_date: "" }]);
-    }
+    if (goals.length < 3)
+      setGoals([...goals, { title: "", category: "", target_date: "", mission: "" }]);
   };
 
   const removeGoal = (index: number) => {
@@ -48,18 +49,53 @@ const GoalSetupPage = () => {
     const userId = user.id;
 
     try {
-      const { error } = await supabase.from("user_goals").insert(
-        goals.map((g) => ({
-          user_id: userId,
-          title: g.title,
-          category: g.category,
-          target_date: g.target_date || null,
-        }))
-      );
+   
+      const { data: insertedGoals, error: goalError } = await supabase
+        .from("user_goals")
+        .insert(
+          goals.map((g) => ({
+            user_id: userId,
+            title: g.title,
+            category: g.category,
+            target_date: g.target_date || null,
+          }))
+        )
+        .select("id");
 
-      if (error) throw error;
-      setSuccessMsg("Goals created successfully!");
-      setGoals([{ title: "", missions: "", category: "", target_date: "" }]);
+      if (goalError) throw goalError;
+
+    
+      const missionsToInsert = insertedGoals
+        .map((goalRow: any, index: number) => {
+          const missionText = goals[index].mission?.trim();
+          if (!missionText) return null;
+          return {
+            goal_id: goalRow.id,
+            user_id: userId,
+            title: missionText,
+          };
+        })
+        .filter(Boolean);
+
+      if (missionsToInsert.length > 0) {
+        const { error: missionError } = await supabase
+          .from("user_missions")
+          .insert(missionsToInsert);
+
+        if (missionError) throw missionError;
+      }
+      const { error: userUpdateError } = await supabase
+        .from("users")
+        .update({ initial: false })
+        .eq("id", userId);
+
+      if (userUpdateError) throw userUpdateError;
+
+      setSuccessMsg("Goals and missions saved successfully!");
+      setGoals([{ title: "", category: "", target_date: "", mission: "" }]);
+
+      // Optionally navigate away after a delay
+      setTimeout(() => router.push("/auth/login"), 1200);
     } catch (err: any) {
       console.error(err);
       alert("Error saving goals: " + err.message);
@@ -79,7 +115,10 @@ const GoalSetupPage = () => {
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {goals.map((goal, index) => (
-          <div key={index} className="p-4 rounded-xl bg-zinc-800 border-zinc-700 border relative">
+          <div
+            key={index}
+            className="p-4 rounded-xl bg-zinc-800 border-zinc-700 border relative"
+          >
             <h2 className="text-lg font-semibold mb-3">Goal {index + 1}</h2>
 
             <input
@@ -89,15 +128,7 @@ const GoalSetupPage = () => {
               value={goal.title}
               onChange={(e) => handleGoalChange(index, "title", e.target.value)}
               required
-            />
-
-            <input
-              placeholder="Mission"
-              className="w-full p-2 mb-2 rounded bg-zinc-950 border-zinc-700 border"
-              value={goal.missions}
-              onChange={(e) =>
-                handleGoalChange(index, "description", e.target.value)
-              }
+         
             />
 
             <input
@@ -105,7 +136,10 @@ const GoalSetupPage = () => {
               placeholder="Category (e.g. Fitness, Study, Career)"
               className="w-full p-2 mb-2 rounded bg-zinc-950 border-zinc-700 border"
               value={goal.category}
-              onChange={(e) => handleGoalChange(index, "category", e.target.value)}
+              onChange={(e) =>
+                handleGoalChange(index, "category", e.target.value)
+              }
+              required
             />
 
             <label className="text-sm text-gray-400">Target Date</label>
@@ -116,6 +150,18 @@ const GoalSetupPage = () => {
               onChange={(e) =>
                 handleGoalChange(index, "target_date", e.target.value)
               }
+              required
+            />
+
+            <input
+              type="text"
+              placeholder="Mission"
+              className="w-full p-2 mb-2 rounded bg-zinc-950 border-zinc-700 border"
+              value={goal.mission}
+              onChange={(e) =>
+                handleGoalChange(index, "mission", e.target.value)
+              }
+              required
             />
 
             {goals.length > 1 && (

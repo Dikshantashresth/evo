@@ -4,5 +4,6 @@ export interface UserProfile{
     username:string,
     xp:number,
     title:string,
-    level:number
+    level:number,
+    goals_achieved?:number
 }

@@ -1,13 +1,23 @@
 "use client";
-import React, { useState } from "react";
+
+import { useEffect, useState } from "react";
+import { useSupabase } from "@/hooks/useSupabase";
+import { useDispatch, useSelector } from "react-redux";
+import { AppDispatch, RootState } from "@/app/redux/store";
+import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
+import { CheckCircle2, Clock, Target } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { getprofile } from "@/app/redux/features/userSlice";
 
 interface Mission {
   id: string;
   title: string;
   description?: string;
-  goal: string;
+  goal: string | null;
   completed: boolean;
   date: string;
+  xp_reward: number;
 }
 
 const motivationalQuotes = [
@@ -15,147 +25,190 @@ const motivationalQuotes = [
   "Small steps daily lead to massive change.",
   "Don’t count the days. Make the days count.",
   "Every rep, every page, every line — it adds up.",
-  "You are what you repeatedly do. Excellence is a habit."
+  "You are what you repeatedly do. Excellence is a habit.",
 ];
 
 const Missions = () => {
-  const [missions, setMissions] = useState<Mission[]>([
-    {
-      id: crypto.randomUUID(),
-      title: "Workout for 1 hour",
-      goal: "Get shredded",
-      description: "Focus on core and cardio today.",
-      completed: false,
-      date: "2025-11-12",
-    },
-    {
-      id: crypto.randomUUID(),
-      title: "Study 1 hour of DSA",
-      goal: "Ace final term",
-      description: "Practice problems on recursion.",
-      completed: true,
-      date: "2025-11-11",
-    },
-  ]);
+  const { supabase } = useSupabase();
+  const { user } = useSelector((state: RootState) => state.profile);
+  const [missions, setMissions] = useState<Mission[]>([]);
+  const [loading, setLoading] = useState(true);
+  const dispatch = useDispatch<AppDispatch>();
 
-  const [newMission, setNewMission] = useState({
-    title: "",
-    description: "",
-    goal: "",
-  });
+  const [quote] = useState(
+    motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)]
+  );
 
-  const quote =
-    motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)];
+  const userId = user?.id;
 
- 
+useEffect(()=>{
+if(!userId){
+  dispatch(getprofile())
+}
+},[dispatch])
+  useEffect(() => {
+    const fetchMissions = async () => {
+      if (!userId) return;
+      setLoading(true);
+      const { data, error } = await supabase
+        .from("user_missions")
+        .select("*")
+        .eq("user_id", userId)
+        .order("date", { ascending: false });
+      if (!error && data) setMissions(data);
+      setLoading(false);
+    };
 
-  const toggleCompletion = (id: string) => {
-    setMissions((prev) =>
-      prev.map((m) =>
-        m.id === id ? { ...m, completed: !m.completed } : m
-      )
-    );
-  };
+    fetchMissions();
+  }, [userId, supabase]);
 
-  const deleteMission = (id: string) => {
-    setMissions((prev) => prev.filter((m) => m.id !== id));
-  };
+ const handleComplete = async (id: string, xpReward: number) => {
+  if (!userId) return;
 
-  const editMission = (id: string, newTitle: string) => {
-    setMissions((prev) =>
-      prev.map((m) =>
-        m.id === id ? { ...m, title: newTitle } : m
-      )
-    );
-  };
+  
+  const updated = missions.map((m) =>
+    m.id === id ? { ...m, completed: true } : m
+  );
+  setMissions(updated);
+
+
+  const {error: missionError } = await supabase
+    .from("user_missions")
+    .update({ completed: true })
+    .eq("id", id);
+
+  if (missionError) {
+    console.error("Mission update failed:", missionError.message);
+    return;
+  }
+
+  
+
+  const newXP = user.xp+ xpReward;
+
+
+  const { error: userUpdateError } = await supabase
+    .from("users")
+    .update({ xp: newXP })
+    .eq("id", userId);
+
+  if (userUpdateError) {
+    console.error("Failed to update user XP:", userUpdateError.message);
+  } else {
+    console.log(`User XP updated: +${xpReward}, total ${newXP}`);
+  }
+};
+const handleUndo = async (id: string, xpReward: number) => {
+  if (!userId) return;
+
+
+  const updated = missions.map((m) =>
+    m.id === id ? { ...m, completed: false } : m
+  );
+  setMissions(updated);
+
+  const { error: missionError } = await supabase
+    .from("user_missions")
+    .update({ completed: false })
+    .eq("id", id);
+
+  if (missionError) {
+    console.error("Mission undo failed:", missionError.message);
+    return;
+  }
+
+  // Deduct XP from user
+  const newXP = Math.max(0, (user.xp || 0) - xpReward); // Prevents negative XP
+
+  const { error: userUpdateError } = await supabase
+    .from("users")
+    .update({ xp: newXP })
+    .eq("id", userId);
+
+  if (userUpdateError) {
+    console.error("Failed to update user XP:", userUpdateError.message);
+  } else {
+    console.log(`User XP reverted: -${xpReward}, total ${newXP}`);
+  }
+};
+
+
+  const total = missions.length;
+  const completed = missions.filter((m) => m.completed).length;
+  const progress = total ? Math.round((completed / total) * 100) : 0;
 
   return (
-    <div className="  mt-4 p-6 w-full text-white rounded-2xl shadow-lg">
-    
-      <div className="mb-8 p-2 bg-zinc-900 border-zinc-700 border rounded-lg">
-        <h1 className="text-3xl font-bold mb-2">Missions</h1>
-        <p className="text-gray-400 italic">{quote}</p>
+    <div className="m-3 h-[90%] flex flex-col gap-4">
+      {/* Header with motivational quote */}
+      <div className="relative bg-gradient-to-r from-zinc-950 via-zinc-900 to-zinc-950 border border-zinc-800 rounded-2xl p-6 text-white shadow-lg">
+        <h2 className="text-2xl font-bold tracking-wide">Missions</h2>
+        <p className="text-zinc-400 mt-2 italic">“{quote}”</p>
+
+        <div className="mt-5 flex items-center gap-4">
+          <Progress value={progress} className="w-2/3 h-2 bg-zinc-800" />
+          <span className="text-sm text-zinc-400">
+            {completed}/{total} completed
+          </span>
+        </div>
       </div>
 
-      {/* Add Mission Form */}
-      
-        <input
-          type="text"
-          value={newMission.goal}
-          onChange={(e) =>
-            setNewMission({ ...newMission, goal: e.target.value })
-          }
-          placeholder="Goal (e.g. Get shredded)"
-          className="w-full p-2 bg-zinc-800 rounded focus:outline-none"
-        />
-        <input
-          type="text"
-          value={newMission.title}
-          onChange={(e) =>
-            setNewMission({ ...newMission, title: e.target.value })
-          }
-          placeholder="Mission title (e.g. Workout for 1 hour)"
-          className="w-full p-2 bg-zinc-800 rounded focus:outline-none"
-        />
-        <textarea
-          value={newMission.description}
-          onChange={(e) =>
-            setNewMission({ ...newMission, description: e.target.value })
-          }
-          placeholder="Description (optional)"
-          className="w-full p-2 bg-zinc-800 rounded focus:outline-none"
-        />
-        <button
-          type="submit"
-          className="w-full bg-blue-600 hover:bg-blue-500 py-2 rounded-md font-semibold"
-        >
-          Add Mission
-        </button>
-    
-      
-      {missions.length === 0 ? (
-        <p className="text-gray-500 text-center">No missions yet. Add one!</p>
-      ) : (
-        missions.map((m) => (
-          <div
-            key={m.id}
-            className={`mb-3 p-4 rounded-xl flex justify-between items-start transition-all ${
-              m.completed ? "bg-green-900/40" : "bg-zinc-800"
-            }`}
-          >
-            <div className="flex gap-3 items-start">
-              <input
-                type="checkbox"
-                checked={m.completed}
-                onChange={() => toggleCompletion(m.id)}
-                className="mt-1 accent-blue-500"
-              />
-              <div>
-                <h2
-                  contentEditable
-                  suppressContentEditableWarning
-                  onBlur={(e) => editMission(m.id, e.target.textContent || "")}
-                  className={`font-semibold text-lg outline-none ${
-                    m.completed ? "line-through text-gray-400" : ""
-                  }`}
-                >
-                  {m.title}
-                </h2>
-                <p className="text-sm text-gray-400">{m.description}</p>
-                <p className="text-xs text-gray-500 mt-1">
-                  Goal: {m.goal} • {m.date}
-                </p>
-              </div>
-            </div>
-            <button
-              onClick={() => deleteMission(m.id)}
-              className="text-red-400 hover:text-red-600 transition"
-            >
-              ✕
-            </button>
+      {/* Missions List */}
+      <div className="flex-1 overflow-y-auto rounded-2xl border border-zinc-800 bg-gradient-to-r from-zinc-950 via-zinc-900 to-zinc-950 shadow-lg p-5 text-white">
+        {loading ? (
+          <div className="text-center text-zinc-500 mt-10">Loading missions...</div>
+        ) : missions.length === 0 ? (
+          <div className="text-center text-zinc-500 mt-10">
+            No missions yet. Start your first quest today.
           </div>
-        ))
-      )}
+        ) : (
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {missions.map((mission) => (
+              <div
+                key={mission.id}
+                className={cn(
+                  "border border-zinc-800 bg-zinc-900 rounded-xl p-4 flex flex-col justify-between transition-all hover:bg-zinc-800",
+                  mission.completed && "opacity-70"
+                )}
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="font-semibold text-lg">{mission.title}</h3>
+                    {mission.completed ? (
+                      <CheckCircle2 className="text-green-500" />
+                    ) : (
+                      <Target className="text-zinc-500" />
+                    )}
+                  </div>
+                  {mission.description && (
+                    <p className="text-zinc-400 text-sm mb-3">
+                      {mission.description}
+                    </p>
+                  )}
+                  <div className="flex items-center text-xs text-zinc-500 gap-2">
+                    <Clock className="size-4" />{" "}
+                    {new Date(mission.date).toLocaleDateString()}
+                  </div>
+                </div>
+
+                <div className="flex justify-between items-center mt-4">
+                  <span className="text-xs text-yellow-500">
+                    +{mission.xp_reward} XP
+                  </span>
+                  {!mission.completed ? (
+                    <Button
+                      size="sm"
+                      className="bg-green-600 hover:bg-green-700 text-white"
+                      onClick={() => handleComplete(mission.id,mission.xp_reward)}
+                    >
+                      Mark Done
+                    </Button>
+                  ):<Button onClick={()=>handleUndo(mission.id,mission.xp_reward)}>undo</Button>}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 };

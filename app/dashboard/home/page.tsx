@@ -4,6 +4,7 @@ import { getprofile } from "@/app/redux/features/userSlice";
 import { AppDispatch, RootState } from "@/app/redux/store";
 import Header from "@/components/Header";
 import MissionList from "@/components/MissionList";
+import SideCard from "@/components/SideCard";
 import StreakComponent from "@/components/StreakComponent";
 
 import { useEffect } from "react";
@@ -32,7 +33,7 @@ const HomePage = () => {
       <MissionList/>
     </div>
         <div className="w-[35%]">
-          <StreakComponent/>
+          <SideCard/>
         </div>
       </div>
     </div>
