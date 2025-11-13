@@ -14,13 +14,16 @@ export default  function Home() {
     const route = async () => {
       const data  = await supabase.auth.getUser();
       if (data.data.user?.id) {
-        const {data:Check} = await supabase.from('users').select('initial').eq('id',data.data.user.id);
-        console.log(Check)
-        if(Check){
-            router.push('/goals')
-        }
-        else{
-          router.push('/dashboard/home')
+        const { data: Check } = await supabase
+          .from('users')
+          .select('initial')
+          .eq('id', data.data.user.id)
+          .single();
+        console.log(Check);
+        if (Check?.initial === true) {
+          router.push('/goals');
+        } else {
+          router.push('/dashboard/home');
         }
       }
     };

@@ -5,14 +5,19 @@ import { Card, CardContent } from "@/components/ui/card";
 
 import { Trophy, Star } from "lucide-react";
 import { ProgressBar } from "./Progress";
+import { useEffect, useState } from "react";
 
 interface UserProp {
   userData: UserProfile;
 }
 
 const Header = ({ userData }: UserProp) => {
+  const [progress,setProgress] = useState<number>(0)
   const xpNeeded = 100;
-  const progress = Math.min(((userData.xp % xpNeeded) / xpNeeded) * 100, 100);
+  useEffect(()=>{
+    setProgress(Math.min(((userData.xp % xpNeeded) / xpNeeded) * 100, 100));
+  },[progress])
+  
 
   return (
     <Card className="bg-gradient-to-r  from-zinc-950 via-zinc-900 to-zinc-950 border-zinc-800 text-white shadow-lg rounded-2xl p-2">
@@ -32,7 +37,7 @@ const Header = ({ userData }: UserProp) => {
 
             <div className="flex flex-row gap-2">
               <span>
-                {userData.xp}/{xpNeeded - (userData.xp % xpNeeded)}
+                {userData.xp}/{xpNeeded}
               </span>
               <div>xp</div>
             </div>

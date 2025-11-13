@@ -11,13 +11,15 @@ import {
 } from "./ui/sidebar";
 import Link from "next/link";
 import { Button } from "./ui/button";
-import { CheckLine, Home, LogOut, Target, Trophy, User } from "lucide-react";
+import { CheckLine, Circle, Home, LogOut, Target, Trophy, User } from "lucide-react";
+
 
 const items = [
   { title: "Home", icon: Home, url: "/dashboard/home" },
   { title: "Missions", icon: CheckLine, url: "/dashboard/missions" },
   { title: "Quests", icon: Target, url: "/dashboard/quest" },
   { title: "Leaderboard", icon: Trophy, url: "/dashboard/leaderboard" },
+  {title:"Evo",icon:Circle,url:'/evo'},
   { title: "Profile", icon: User, url: "/dashboard/profile" },
 ];
 const SideBar = () => {
