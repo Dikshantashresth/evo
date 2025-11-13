@@ -16,7 +16,7 @@ const Header = ({ userData }: UserProp) => {
   const xpNeeded = 100;
   useEffect(()=>{
     setProgress(Math.min(((userData.xp % xpNeeded) / xpNeeded) * 100, 100));
-  },[progress])
+  },[progress,xpNeeded,userData?.xp])
   
 
   return (
